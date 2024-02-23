@@ -1,23 +1,26 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:test
-    username: sa
-    password:
-    driverClassName: org.h2.Driver
+    url: jdbc:h2:mem:test # H2 데이터베이스의 JDBC URL. 여기서는 메모리 모드로 H2 데이터베이스를 사용함을 나타냄
+    username: sa # 데이터베이스 접속을 위한 사용자 이름
+    password: # 데이터베이스 접속을 위한 비밀번호. 여기서는 비어 있음
+    driverClassName: org.h2.Driver # JDBC 드라이버 클래스 이름
+
   h2:
     console:
-      enabled: true
+      enabled: true # H2 데이터베이스 콘솔을 활성화. 개발 중 데이터베이스 상태를 쉽게 확인할 수 있도록 함
+
   jpa:
-    defer-datasource-initialization: true
-    database-platform: H2
+    defer-datasource-initialization: true # 데이터 소스 초기화를 지연시킴. SQL 스크립트 실행 등에 유용
+    database-platform: H2 # 사용할 데이터베이스 플랫폼. 여기서는 H2를 사용
     hibernate:
-      ddl-auto: create-drop
-    open-in-view: false
+      ddl-auto: create-drop # 애플리케이션 시작 시 데이터베이스 스키마를 자동으로 생성하고, 종료 시 삭제
+    open-in-view: false # Open Session In View 패턴 사용 여부. 성능 이슈를 방지하기 위해 false로 설정
     properties:
       hibernate:
-        format_sql: true
-        show_sql: true
+        format_sql: true # SQL 쿼리를 포맷팅하여 로그에 출력
+        show_sql: true # 실행되는 SQL 쿼리를 로그에 출력. 개발 중에 유용
+
   data:
     redis:
-      host: 127.0.0.1
-      port: 6379
+      host: 127.0.0.1 # Redis 서버의 호스트 주소
+      port: 6379 # Redis 서버의 포트 번호
