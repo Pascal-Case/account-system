@@ -1,14 +1,15 @@
 package com.example.account.controller;
 
+import com.example.account.dto.AccountInfo;
 import com.example.account.dto.CreateAccount;
 import com.example.account.dto.DeleteAccount;
 import com.example.account.service.AccountService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 // 스프링에게 이 클래스가 REST API를 처리하는 컨트롤러임을 알림, 응답 본문이 자동으로 JSON 등으로 변환됨
@@ -42,5 +43,20 @@ public class AccountController {
                         request.getAccountNumber()
                 )
         );
+    }
+
+    @GetMapping("/account")
+    public List<AccountInfo> getAccountsByUserId(
+            @RequestParam("user_id") Long userId
+    ) {
+        // List<Accountdto> -> List<AccountInfo>
+        return accountService.getAccountsByUserId(userId)
+                .stream()
+                .map(accountDto -> AccountInfo.builder()
+                        .accountNumber(accountDto.getAccountNumber())
+                        .balance(accountDto.getBalance())
+                        .build())
+                .collect(Collectors.toList());
+
     }
 }

@@ -7,7 +7,6 @@ import com.example.account.exception.AccountException;
 import com.example.account.repository.AccountRepository;
 import com.example.account.repository.AccountUserRepository;
 import com.example.account.type.AccountStatus;
-import com.example.account.type.ErrorCode;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,8 +16,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
+import static com.example.account.type.ErrorCode.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
@@ -36,7 +39,6 @@ class AccountServiceTest {
 
     @InjectMocks
     private AccountService accountService; // AccountService에 모의 객체를 주입하며, 여기서 AccountService는 테스트 대상
-
 
     @Test
     void createAccountSuccess() {
@@ -88,8 +90,8 @@ class AccountServiceTest {
         System.out.println("Account ID: " + capturedAccount.getAccountUser().getId());
         System.out.println("Account Number: " + capturedAccount.getAccountNumber());
 
-        Assertions.assertEquals(12L, capturedAccount.getAccountUser().getId()); // 사용자 ID 검증
-        Assertions.assertEquals("1000000013", capturedAccount.getAccountNumber()); // 계좌 번호 검증
+        assertEquals(12L, capturedAccount.getAccountUser().getId()); // 사용자 ID 검증
+        assertEquals("1000000013", capturedAccount.getAccountNumber()); // 계좌 번호 검증
     }
 
     @Test
@@ -132,8 +134,8 @@ class AccountServiceTest {
         System.out.println("Account ID: " + capturedAccount.getAccountUser().getId());
         System.out.println("Account Number: " + capturedAccount.getAccountNumber());
 
-        Assertions.assertEquals(15L, capturedAccount.getAccountUser().getId()); // 사용자 ID 검증
-        Assertions.assertEquals("1000000000", capturedAccount.getAccountNumber()); // 계좌 번호 검증
+        assertEquals(15L, capturedAccount.getAccountUser().getId()); // 사용자 ID 검증
+        assertEquals("1000000000", capturedAccount.getAccountNumber()); // 계좌 번호 검증
     }
 
     @Test
@@ -151,7 +153,7 @@ class AccountServiceTest {
 
         //then
         // exception 에러 코드가 예상과 일치하는지 확인
-        Assertions.assertEquals(ErrorCode.USER_NOT_FOUND, exception.getErrorCode());
+        assertEquals(USER_NOT_FOUND, exception.getErrorCode());
     }
 
     @Test
@@ -173,7 +175,7 @@ class AccountServiceTest {
 
         //then
         // exception 에러 코드가 예상과 일치하는지 확인
-        Assertions.assertEquals(ErrorCode.MAX_ACCOUNT_PER_USER_10, exception.getErrorCode());
+        assertEquals(MAX_ACCOUNT_PER_USER_10, exception.getErrorCode());
     }
 
     @Test
@@ -200,9 +202,9 @@ class AccountServiceTest {
         //then
         verify(accountRepository, times(1)).save(captor.capture());
 
-        Assertions.assertEquals(12L, accountDto.getUserId());
-        Assertions.assertEquals("1000000012", captor.getValue().getAccountNumber());
-        Assertions.assertEquals(AccountStatus.UNREGISTERED, captor.getValue().getAccountStatus());
+        assertEquals(12L, accountDto.getUserId());
+        assertEquals("1000000012", captor.getValue().getAccountNumber());
+        assertEquals(AccountStatus.UNREGISTERED, captor.getValue().getAccountStatus());
     }
 
     @Test
@@ -217,7 +219,7 @@ class AccountServiceTest {
                 () -> accountService.deleteAccount(15L, "1234567890"));
 
         //then
-        Assertions.assertEquals(ErrorCode.USER_NOT_FOUND, exception.getErrorCode());
+        assertEquals(USER_NOT_FOUND, exception.getErrorCode());
     }
 
     @Test
@@ -238,7 +240,7 @@ class AccountServiceTest {
                 () -> accountService.deleteAccount(15L, "1234567890"));
 
         //then
-        Assertions.assertEquals(ErrorCode.ACCOUNT_NOT_FOUND, exception.getErrorCode());
+        assertEquals(ACCOUNT_NOT_FOUND, exception.getErrorCode());
     }
 
     @Test
@@ -265,7 +267,7 @@ class AccountServiceTest {
                 () -> accountService.deleteAccount(15L, "1234567890"));
 
         //then
-        Assertions.assertEquals(ErrorCode.USER_ACCOUNT_UN_MATCH, exception.getErrorCode());
+        assertEquals(USER_ACCOUNT_UN_MATCH, exception.getErrorCode());
     }
 
     @Test
@@ -289,7 +291,70 @@ class AccountServiceTest {
                 () -> accountService.deleteAccount(15L, "1234567890"));
 
         //then
-        Assertions.assertEquals(ErrorCode.BALANCE_NOT_EMPTY, exception.getErrorCode());
+        assertEquals(BALANCE_NOT_EMPTY, exception.getErrorCode());
     }
+
+
+    @Test
+    @DisplayName("특정 사용자 ID로 계좌 목록 조회 성공")
+    void successGetAccountsByUserId() {
+        //given
+
+        AccountUser user = AccountUser.builder()
+                .id(12L)
+                .name("Pobi").build();
+        given(accountUserRepository.findById(anyLong()))
+                .willReturn(Optional.of(user));
+        List<Account> accounts = Arrays.asList(
+                Account.builder()
+                        .accountUser(user)
+                        .accountNumber("1111111111")
+                        .balance(1000L)
+                        .build(),
+                Account.builder()
+                        .accountUser(user)
+                        .accountNumber("1111111112")
+                        .balance(2000L)
+                        .build(),
+                Account.builder()
+                        .accountUser(user)
+                        .accountNumber("1111111113")
+                        .balance(3000L)
+                        .build()
+        );
+
+        given(accountUserRepository.findById(anyLong()))
+                .willReturn(Optional.of(user));
+        given(accountRepository.findByAccountUser(any()))
+                .willReturn(accounts);
+        //when
+        List<AccountDto> accountDtoList = accountService.getAccountsByUserId(1L);
+
+        //then
+        assertEquals(3, accountDtoList.size());
+        assertEquals("1111111111", accountDtoList.get(0).getAccountNumber());
+        assertEquals(1000, accountDtoList.get(0).getBalance());
+        assertEquals("1111111112", accountDtoList.get(1).getAccountNumber());
+        assertEquals(2000, accountDtoList.get(1).getBalance());
+        assertEquals("1111111113", accountDtoList.get(2).getAccountNumber());
+        assertEquals(3000, accountDtoList.get(2).getBalance());
+    }
+
+    @Test
+    void failedToGetAccounts() {
+        //given
+        given(accountUserRepository.findById(anyLong()))
+                .willReturn(Optional.empty());
+
+        //when
+        AccountException exception = Assertions.assertThrows(AccountException.class,
+                () -> accountService.getAccountsByUserId(1L));
+
+        //then
+        // exception 에러 코드가 예상과 일치하는지 확인
+        assertEquals(USER_NOT_FOUND, exception.getErrorCode());
+    }
+
+
 }
 
