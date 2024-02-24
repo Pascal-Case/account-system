@@ -1,5 +1,6 @@
 package com.example.account.controller;
 
+import com.example.account.dto.CancelBalance;
 import com.example.account.dto.UseBalance;
 import com.example.account.exception.AccountException;
 import com.example.account.service.TransactionService;
@@ -46,6 +47,31 @@ public class TransactionController {
             // 잔액 사용 처리 중 발생한 예외를 로그에 기록 후, 실패한 거래 정보 저장
             log.error("Failed to use balance. ");
             transactionService.saveFailedUseTransaction(
+                    request.getAccountNumber(),
+                    request.getAmount()
+            );
+
+            throw e; // 처리 중 발생한 예외를 다시 throw하여 상위로 전파
+        }
+    }
+
+    @PostMapping("/transaction/cancel")
+    public CancelBalance.Response cancelBalance(
+            @Valid @RequestBody CancelBalance.Request request
+    ) {
+        try {
+            // TransactionService를 통해 잔액 사용 처리 후, 성공 응답 반환
+            return CancelBalance.Response.from(
+                    transactionService.cancelBalance(
+                            request.getTransactionId(),
+                            request.getAccountNumber(),
+                            request.getAmount()
+                    )
+            );
+        } catch (AccountException e) {
+            // 잔액 사용 처리 중 발생한 예외를 로그에 기록 후, 실패한 거래 정보 저장
+            log.error("Failed to cancel balance. ");
+            transactionService.saveFailedCancelTransaction(
                     request.getAccountNumber(),
                     request.getAmount()
             );
