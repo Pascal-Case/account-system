@@ -6,7 +6,6 @@ import com.example.account.dto.AccountDto;
 import com.example.account.exception.AccountException;
 import com.example.account.repository.AccountRepository;
 import com.example.account.repository.AccountUserRepository;
-import com.example.account.type.AccountStatus;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +19,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import static com.example.account.type.AccountStatus.UNREGISTERED;
 import static com.example.account.type.ErrorCode.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
@@ -204,7 +204,7 @@ class AccountServiceTest {
 
         assertEquals(12L, accountDto.getUserId());
         assertEquals("1000000012", captor.getValue().getAccountNumber());
-        assertEquals(AccountStatus.UNREGISTERED, captor.getValue().getAccountStatus());
+        assertEquals(UNREGISTERED, captor.getValue().getAccountStatus());
     }
 
     @Test
@@ -294,6 +294,30 @@ class AccountServiceTest {
         assertEquals(BALANCE_NOT_EMPTY, exception.getErrorCode());
     }
 
+    @Test
+    @DisplayName("계좌가 이미 해지된 경우 - 계좌 해지 실패")
+    void deleteAccountFailed_alreadyUnregistered() {
+        //given
+        AccountUser user = AccountUser.builder()
+                .id(12L)
+                .name("Pobi").build();
+        given(accountUserRepository.findById(anyLong()))
+                .willReturn(Optional.of(user));
+
+        given(accountRepository.findByAccountNumber(anyString()))
+                .willReturn(Optional.of(Account.builder()
+                        .accountUser(user)
+                        .accountStatus(UNREGISTERED)
+                        .balance(0L)
+                        .accountNumber("1000000012").build()));
+
+        //when
+        AccountException exception = Assertions.assertThrows(AccountException.class,
+                () -> accountService.deleteAccount(15L, "1234567890"));
+
+        //then
+        assertEquals(ACCOUNT_ALREADY_UNREGISTERED, exception.getErrorCode());
+    }
 
     @Test
     @DisplayName("특정 사용자 ID로 계좌 목록 조회 성공")
