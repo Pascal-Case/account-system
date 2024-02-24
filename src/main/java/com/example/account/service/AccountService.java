@@ -10,12 +10,16 @@ import com.example.account.type.AccountStatus;
 import com.example.account.type.ErrorCode;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
+
 
 @Service // 스프링 프레임워크에 이 클래스가 서비스 계층의 컴포넌트임을 알리고, 빈으로 관리될 것임을 선언
 @RequiredArgsConstructor // Lombok 라이브러리를 사용하여 final로 선언된 모든 필드에 대한 생성자를 자동으로 생성
+@Slf4j
 public class AccountService {
     private final AccountRepository accountRepository; // Account 엔티티에 대한 CRUD 연산을 담당하는 JPA 리포지토리
     private final AccountUserRepository accountUserRepository; // AccountUser 엔티티에 대한 CRUD 연산을 담당하는 JPA 리포지토리
@@ -28,13 +32,16 @@ public class AccountService {
      * @param initialBalance 생성할 계좌의 초기 잔액.
      * @return AccountDto 생성된 계좌의 데이터를 담은 데이터 전송 객체.
      */
-    @Transactional // 이 메서드가 하나의 트랜잭션으로 관리되어, 실행 중 오류가 발생하면 롤백됨을 보장
+    @Transactional
     public AccountDto createAccount(Long userId, Long initialBalance) {
         // 사용자 존재 여부 확인, 없을 경우 사용자 없음 예외 발생
         AccountUser accountUser = accountUserRepository.findById(userId)
                 .orElseThrow(() -> new AccountException(ErrorCode.USER_NOT_FOUND));
 
-        // 가장 최근의 계좌 번호를 기반으로 새 계좌 번호 생성, 계좌가 하나도 없을 경우 기본 번호 할당
+        validateCreateAccount(accountUser);
+
+        // 가장 최근의 계좌 번호를 기반으로 새 계좌 번호 생성,
+        // 계좌가 하나도 없을 경우 기본 번호 할당
         String newAccountNumber = accountRepository.findFirstByOrderByIdDesc()
                 .map(account -> (Integer.parseInt(account.getAccountNumber())) + 1 + "")
                 .orElse("1000000000");
@@ -51,5 +58,51 @@ public class AccountService {
 
         // 생성된 계좌 정보를 AccountDto 객체로 변환하여 반환
         return AccountDto.fromEntity(savedAccount);
+    }
+
+    private void validateCreateAccount(AccountUser accountUser) {
+        if (accountRepository.countByAccountUser(accountUser) >= 10) {
+            throw new AccountException(ErrorCode.MAX_ACCOUNT_PER_USER_10);
+        }
+    }
+
+    @Transactional
+    public AccountDto deleteAccount(Long userId, String accountNumber) {
+        // 사용자가 없는 경우
+        AccountUser accountUser = accountUserRepository.findById(userId)
+                .orElseThrow(() -> new AccountException(ErrorCode.USER_NOT_FOUND));
+
+        // 계좌가 없는 경우
+        Account account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> new AccountException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+
+        validateDeleteAccount(accountUser, account);
+
+        // 계좌 상태 해지로 변경하고 날짜 갱신
+        account.setAccountStatus(AccountStatus.UNREGISTERED);
+        account.setUnRegisteredAt(LocalDateTime.now());
+
+        accountRepository.save(account);
+
+        return AccountDto.fromEntity(account);
+    }
+
+    private void validateDeleteAccount(AccountUser accountUser, Account account) {
+        // 계좌 소유주가 다른 경우
+        if (!Objects.equals(accountUser.getId(), account.getAccountUser().getId())) {
+            log.error(ErrorCode.USER_ACCOUNT_UN_MATCH.getDescription());
+            throw new AccountException(ErrorCode.USER_ACCOUNT_UN_MATCH);
+        }
+        // 이미 해지 상태인 경우
+        if (account.getAccountStatus() == AccountStatus.UNREGISTERED) {
+            log.error(ErrorCode.ACCOUNT_ALREADY_UNREGISTERED.getDescription());
+            throw new AccountException(ErrorCode.ACCOUNT_ALREADY_UNREGISTERED);
+        }
+        // 잔액이 있는 경우
+        if (account.getBalance() > 0) {
+            log.error(ErrorCode.BALANCE_NOT_EMPTY.getDescription());
+            throw new AccountException(ErrorCode.BALANCE_NOT_EMPTY);
+        }
     }
 }
