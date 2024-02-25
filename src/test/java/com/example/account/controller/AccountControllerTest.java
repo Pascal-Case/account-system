@@ -3,8 +3,8 @@ package com.example.account.controller;
 import com.example.account.dto.AccountDto;
 import com.example.account.dto.CreateAccount;
 import com.example.account.dto.DeleteAccount;
+import com.example.account.exception.AccountException;
 import com.example.account.service.AccountService;
-import com.example.account.service.RedisTestService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
+import static com.example.account.type.ErrorCode.ACCOUNT_NOT_FOUND;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
@@ -29,9 +30,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AccountControllerTest {
     @MockBean
     private AccountService accountService; // AccountService의 모의 객체를 생성
-
-    @MockBean
-    private RedisTestService redisTestService; // RedisTestService의 모의 객체를 생성
 
     @Autowired
     private MockMvc mockMvc; // Spring MVC 동작을 모의하는 MockMvc 객체를 주입
@@ -111,6 +109,21 @@ class AccountControllerTest {
                 .andDo(print())
                 .andExpect(jsonPath("$[0].accountNumber").value("1234567890"))
                 .andExpect(jsonPath("$[0].balance").value("1000"));
+
+    }
+
+    @Test
+    void failedGetAccount() throws Exception {
+        // given
+        given(accountService.getAccountsByUserId(anyLong()))
+                .willThrow(new AccountException(ACCOUNT_NOT_FOUND));
+
+        // then
+        mockMvc.perform(get("/account?user_id=1234"))
+                .andDo(print())
+                .andExpect(jsonPath("$.errorCode").value("ACCOUNT_NOT_FOUND"))
+                .andExpect(jsonPath("$.errorMessage").value("계좌가 없습니다."))
+                .andExpect(status().isOk());
 
     }
 }

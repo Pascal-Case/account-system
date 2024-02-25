@@ -1,5 +1,6 @@
 package com.example.account.controller;
 
+import com.example.account.aop.AccountLock;
 import com.example.account.dto.CancelBalance;
 import com.example.account.dto.QueryTransactionResponse;
 import com.example.account.dto.UseBalance;
@@ -30,10 +31,12 @@ public class TransactionController {
      * @throws AccountException 계좌 관련 예외가 발생하면, 예외 처리 후 로그 기록하고 예외를 다시 throw
      */
     @PostMapping("/transaction/use")
+    @AccountLock
     public UseBalance.Response useBalance(
             @Valid @RequestBody UseBalance.Request request
     ) {
         try {
+            Thread.sleep(2000L);
             // TransactionService를 통해 잔액 사용 처리 후, 성공 응답 반환
             return UseBalance.Response.from(
                     transactionService.useBalance(
@@ -51,10 +54,13 @@ public class TransactionController {
             );
 
             throw e; // 처리 중 발생한 예외를 다시 throw하여 상위로 전파
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 
     @PostMapping("/transaction/cancel")
+    @AccountLock
     public CancelBalance.Response cancelBalance(
             @Valid @RequestBody CancelBalance.Request request
     ) {
