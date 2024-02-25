@@ -1,15 +1,14 @@
 package com.example.account.controller;
 
 import com.example.account.dto.CancelBalance;
+import com.example.account.dto.QueryTransactionResponse;
 import com.example.account.dto.UseBalance;
 import com.example.account.exception.AccountException;
 import com.example.account.service.TransactionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 잔액 관련 컨트롤러
@@ -60,7 +59,7 @@ public class TransactionController {
             @Valid @RequestBody CancelBalance.Request request
     ) {
         try {
-            // TransactionService를 통해 잔액 사용 처리 후, 성공 응답 반환
+            // TransactionService를 통해 잔액 취소 처리 후, 성공 응답 반환
             return CancelBalance.Response.from(
                     transactionService.cancelBalance(
                             request.getTransactionId(),
@@ -69,7 +68,7 @@ public class TransactionController {
                     )
             );
         } catch (AccountException e) {
-            // 잔액 사용 처리 중 발생한 예외를 로그에 기록 후, 실패한 거래 정보 저장
+            // 잔액 사용 취소 처리 중 발생한 예외를 로그에 기록 후, 실패한 거래 취소 정보 저장
             log.error("Failed to cancel balance. ");
             transactionService.saveFailedCancelTransaction(
                     request.getAccountNumber(),
@@ -78,5 +77,14 @@ public class TransactionController {
 
             throw e; // 처리 중 발생한 예외를 다시 throw하여 상위로 전파
         }
+    }
+
+    @GetMapping("/transaction/{transactionId}")
+    public QueryTransactionResponse queryTransaction(
+            @PathVariable String transactionId
+    ) {
+        return QueryTransactionResponse.from(
+                transactionService.queryTransaction(transactionId)
+        );
     }
 }
