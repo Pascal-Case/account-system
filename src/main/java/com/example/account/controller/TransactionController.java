@@ -23,13 +23,6 @@ import org.springframework.web.bind.annotation.*;
 public class TransactionController {
     private final TransactionService transactionService;
 
-    /**
-     * 잔액을 사용하는 거래를 처리
-     *
-     * @param request 잔액 사용 요청에 대한 데이터를 담고 있는 DTO 객체
-     * @return 거래가 성공적으로 완료되면, 거래 후 잔액 정보를 담은 응답 DTO 반환
-     * @throws AccountException 계좌 관련 예외가 발생하면, 예외 처리 후 로그 기록하고 예외를 다시 throw
-     */
     @PostMapping("/transaction/use")
     @AccountLock
     public UseBalance.Response useBalance(

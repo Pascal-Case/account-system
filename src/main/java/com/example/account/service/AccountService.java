@@ -26,15 +26,8 @@ import static com.example.account.type.ErrorCode.*;
 public class AccountService {
     private final AccountRepository accountRepository; // Account 엔티티에 대한 CRUD 연산을 담당하는 JPA 리포지토리
     private final AccountUserRepository accountUserRepository; // AccountUser 엔티티에 대한 CRUD 연산을 담당하는 JPA 리포지토리
+    private final AccountNumberGenerator accountNumberGenerator;
 
-    /**
-     * 사용자 ID와 초기 잔액을 입력 받아 새로운 계좌를 생성하고,
-     * 그 정보를 AccountDto로 변환하여 반환하는 메서드.
-     *
-     * @param userId         사용자의 고유 ID. 계좌를 생성할 사용자를 식별하기 위해 사용.
-     * @param initialBalance 생성할 계좌의 초기 잔액.
-     * @return AccountDto 생성된 계좌의 데이터를 담은 데이터 전송 객체.
-     */
     @Transactional
     public AccountDto createAccount(Long userId, Long initialBalance) {
         // 사용자 존재 여부 확인, 없을 경우 사용자 없음 예외 발생
@@ -42,12 +35,8 @@ public class AccountService {
 
         validateCreateAccount(accountUser);
 
-        // 가장 최근의 계좌 번호를 기반으로 새 계좌 번호 생성,
-        // 계좌가 하나도 없을 경우 기본 번호 할당
-        String newAccountNumber = accountRepository.findFirstByOrderByIdDesc()
-                .map(account -> (Integer.parseInt(account.getAccountNumber())) + 1 + "")
-                .orElse("1000000000");
-
+        // 중복이 없는 랜덤 계좌번호 발행
+        String newAccountNumber = accountNumberGenerator.generateUniqueAccountNumber();
         // 계좌 생성 및 저장
         Account savedAccount = accountRepository.save(
                 Account.builder()
