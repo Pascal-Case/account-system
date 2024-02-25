@@ -7,13 +7,6 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
-/**
- * {
- * "transactionId":"c2033bb6d82a4250aecf8e27c49b63f6",
- * "accountNumber":"1000000000",
- * "amount":1000
- * }
- */
 public class CancelBalance {
 
     @Getter

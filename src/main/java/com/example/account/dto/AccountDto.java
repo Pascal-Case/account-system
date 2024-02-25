@@ -17,12 +17,6 @@ public class AccountDto {
     private LocalDateTime registeredAt;
     private LocalDateTime unRegisteredAt;
 
-    /**
-     * Account 도메인 엔티티 객체를 AccountDto 객체로 변환하는 정적 메서드.
-     *
-     * @param account Account 도메인 엔티티 객체
-     * @return AccountDto 변환된 DTO 객체
-     */
     public static AccountDto fromEntity(Account account) {
         return AccountDto.builder()
                 .userId(account.getAccountUser().getId())
